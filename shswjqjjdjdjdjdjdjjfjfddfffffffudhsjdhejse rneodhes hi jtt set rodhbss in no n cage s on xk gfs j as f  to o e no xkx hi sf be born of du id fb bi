@@ -1,0 +1,80 @@
+<Window x:Class="CinemaTicketApp.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Cinema Ticket Generator" Height="300" Width="400">
+    <Grid>
+        <TextBlock HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,10,0,0" FontSize="14">Номер билета</TextBlock>
+        <TextBox x:Name="TicketNumber" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,40,0,0" Width="360"/>
+
+        <TextBlock HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,80,0,0" FontSize="14">Название фильма</TextBlock>
+        <TextBox x:Name="MovieName" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,110,0,0" Width="360"/>
+
+        <TextBlock HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,150,0,0" FontSize="14">Дата и время сеанса</TextBlock>
+        <TextBox x:Name="ShowTime" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,180,0,0" Width="360"/>
+
+        <TextBlock HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,220,0,0" FontSize="14">Кинотеатр</TextBlock>
+        <TextBox x:Name="CinemaName" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,250,0,0" Width="360"/>
+
+        <TextBlock HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,290,0,0" FontSize="14">Зал, Ряд, Место</TextBlock>
+        <TextBox x:Name="SeatInfo" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,320,0,0" Width="360"/>
+
+        <Button Content="Сгенерировать билет" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,10" Width="180" Height="40" Click="GenerateTicketPdf"/>
+    </Grid>
+</Window>
+
+
+
+
+
+using PdfSharp.Pdf;
+using PdfSharp.Drawing;
+using System.IO;
+using System.Windows;
+
+namespace CinemaTicketApp
+{
+    public partial class MainWindow : Window
+    {
+        public MainWindow()
+        {
+            InitializeComponent();
+        }
+
+        private void GenerateTicketPdf(object sender, RoutedEventArgs e)
+        {
+            // Получаем данные из текстовых полей
+            string ticketNumber = TicketNumber.Text;
+            string movieName = MovieName.Text;
+            string showTime = ShowTime.Text;
+            string cinemaName = CinemaName.Text;
+            string seatInfo = SeatInfo.Text;
+
+            // Создаем новый PDF-документ
+            PdfDocument pdf = new PdfDocument();
+            PdfPage page = pdf.AddPage();
+            XGraphics gfx = XGraphics.FromPdfPage(page);
+
+            // Устанавливаем шрифт для текста
+            XFont font = new XFont("Verdana", 12, XFontStyle.Regular);
+
+            // Позиционируем и добавляем текст на страницу
+            gfx.DrawString($"Билет № {ticketNumber}", font, XBrushes.Black, new XPoint(40, 40));
+            gfx.DrawString($"Название фильма: {movieName}", font, XBrushes.Black, new XPoint(40, 80));
+            gfx.DrawString($"Начало сеанса: {showTime}", font, XBrushes.Black, new XPoint(40, 120));
+            gfx.DrawString($"Кинотеатр: {cinemaName}", font, XBrushes.Black, new XPoint(40, 160));
+            gfx.DrawString($"Зал: {seatInfo.Split(',')[0]}", font, XBrushes.Black, new XPoint(40, 200));
+            gfx.DrawString($"Ряд: {seatInfo.Split(',')[1]}", font, XBrushes.Black, new XPoint(40, 240));
+            gfx.DrawString($"Место: {seatInfo.Split(',')[2]}", font, XBrushes.Black, new XPoint(40, 280));
+
+            // Добавляем графику (например, логотип кинотеатра)
+            XImage image = XImage.FromFile("cinema_logo.png");  // Путь к изображению (шаблон)
+            gfx.DrawImage(image, 350, 40, 50, 50);
+
+            // Сохраняем файл PDF
+            string pdfFilename = $"Ticket_{ticketNumber}.pdf";
+            pdf.Save(pdfFilename);
+
+            MessageBox.Show("Билет успешно сгенерирован в PDF формате!", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+    }
+}
