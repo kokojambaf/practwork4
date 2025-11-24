@@ -1,0 +1,134 @@
+using System;
+using System.Data.SqlClient;
+using System.Windows;
+
+namespace CinemaTicketApp
+{
+    public partial class MainWindow : Window
+    {
+        public MainWindow()
+        {
+            InitializeComponent();
+        }
+
+        private string GetTicketData(int ticketId)
+        {
+            string connectionString = "Server=YOUR_SERVER;Database=YOUR_DATABASE;Integrated Security=True;";
+            string ticketData = string.Empty;
+
+            using (SqlConnection conn = new SqlConnection(connectionString))
+            {
+                try
+                {
+                    conn.Open();
+                    string query = "SELECT TicketNumber, MovieName, ShowTime, CinemaName, SeatRow, SeatNumber FROM Tickets WHERE TicketId = @TicketId";
+                    using (SqlCommand cmd = new SqlCommand(query, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@TicketId", ticketId);
+                        SqlDataReader reader = cmd.ExecuteReader();
+
+                        if (reader.Read())
+                        {
+                            string ticketNumber = reader["TicketNumber"].ToString();
+                            string movieName = reader["MovieName"].ToString();
+                            string showTime = reader["ShowTime"].ToString();
+                            string cinemaName = reader["CinemaName"].ToString();
+                            string seatRow = reader["SeatRow"].ToString();
+                            string seatNumber = reader["SeatNumber"].ToString();
+
+                            ticketData = $"{ticketNumber},{movieName},{showTime},{cinemaName},{seatRow},{seatNumber}";
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Ошибка при получении данных: {ex.Message}");
+                }
+            }
+
+            return ticketData;
+        }
+
+        private void GenerateTicketPdf(int ticketId)
+        {
+            // Получаем данные билета из базы данных
+            string ticketData = GetTicketData(ticketId);
+            string[] ticketInfo = ticketData.Split(',');
+
+            if (ticketInfo.Length > 0)
+            {
+                string ticketNumber = ticketInfo[0];
+                string movieName = ticketInfo[1];
+                string showTime = ticketInfo[2];
+                string cinemaName = ticketInfo[3];
+                string seatRow = ticketInfo[4];
+                string seatNumber = ticketInfo[5];
+
+                // Генерация PDF
+                PdfDocument pdf = new PdfDocument();
+                PdfPage page = pdf.AddPage();
+                XGraphics gfx = XGraphics.FromPdfPage(page);
+
+                XFont font = new XFont("Verdana", 12, XFontStyle.Regular);
+
+                // Добавляем текст на страницу
+                gfx.DrawString($"Билет № {ticketNumber}", font, XBrushes.Black, new XPoint(40, 40));
+                gfx.DrawString($"Название фильма: {movieName}", font, XBrushes.Black, new XPoint(40, 80));
+                gfx.DrawString($"Начало сеанса: {showTime}", font, XBrushes.Black, new XPoint(40, 120));
+                gfx.DrawString($"Кинотеатр: {cinemaName}", font, XBrushes.Black, new XPoint(40, 160));
+                gfx.DrawString($"Зал: {seatRow}", font, XBrushes.Black, new XPoint(40, 200));
+                gfx.DrawString($"Ряд: {seatRow}", font, XBrushes.Black, new XPoint(40, 240));
+                gfx.DrawString($"Место: {seatNumber}", font, XBrushes.Black, new XPoint(40, 280));
+
+                // Логотип
+                XImage image = XImage.FromFile("cinema_logo.png");  // Путь к изображению
+                gfx.DrawImage(image, 350, 40, 50, 50);
+
+                // Сохраняем файл PDF
+                string pdfFilename = $"Ticket_{ticketNumber}.pdf";
+                pdf.Save(pdfFilename);
+
+                MessageBox.Show("Билет успешно сгенерирован в PDF формате!", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+        }
+
+        // Метод для генерации .txt билета
+        private void GenerateTicketTxt(int ticketId)
+        {
+            string ticketData = GetTicketData(ticketId);
+            string[] ticketInfo = ticketData.Split(',');
+
+            if (ticketInfo.Length > 0)
+            {
+                string ticketNumber = ticketInfo[0];
+                string movieName = ticketInfo[1];
+                string showTime = ticketInfo[2];
+                string cinemaName = ticketInfo[3];
+                string seatRow = ticketInfo[4];
+                string seatNumber = ticketInfo[5];
+
+                // Формируем строку билета
+                string ticketContent = $"Билет № {ticketNumber}\n" +
+                                       $"Название фильма: {movieName}\n" +
+                                       $"Начало сеанса: {showTime}\n" +
+                                       $"Кинотеатр: {cinemaName}\n" +
+                                       $"Зал: {seatRow}\n" +
+                                       $"Ряд: {seatRow}\n" +
+                                       $"Место: {seatNumber}\n";
+
+                // Сохраняем в .txt файл
+                string fileName = $"Ticket_{ticketNumber}.txt";
+                System.IO.File.WriteAllText(fileName, ticketContent);
+
+                MessageBox.Show("Билет успешно сгенерирован в формате .txt!", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+        }
+
+        private void GenerateTicket(object sender, RoutedEventArgs e)
+        {
+            int ticketId = 1;  // Пример идентификатора билета
+            GenerateTicketPdf(ticketId);
+            GenerateTicketTxt(ticketId);
+        }
+    }
+}
