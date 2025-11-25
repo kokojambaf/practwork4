@@ -1,0 +1,25 @@
+private void LoadCinemas()
+{
+    string connectionString = "Server=YOUR_SERVER;Database=YOUR_DATABASE;Integrated Security=True;";
+    List<string> cinemas = new List<string>();
+
+    using (SqlConnection conn = new SqlConnection(connectionString))
+    {
+        string query = "SELECT CinemaName FROM Cinemas"; // Допустим, у вас есть таблица Cinemas
+
+        using (SqlCommand cmd = new SqlCommand(query, conn))
+        {
+            conn.Open();
+            SqlDataReader reader = cmd.ExecuteReader();
+
+            while (reader.Read())
+            {
+                cinemas.Add(reader["CinemaName"].ToString());
+            }
+        }
+    }
+
+    // Заполнение ComboBox кинотеатрами
+    CinemaComboBox.ItemsSource = cinemas;
+    CinemaComboBox.SelectedIndex = 0;  // По умолчанию выбираем первый элемент
+}
