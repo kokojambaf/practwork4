@@ -1,0 +1,96 @@
+<Window x:Class="CinemaApp.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Cinema Schedule" Height="350" Width="600">
+    <Grid>
+        <TextBlock HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,10,0,0" FontSize="14">Выберите кинотеатр:</TextBlock>
+        <ComboBox x:Name="CinemaComboBox" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,40,0,0" Width="200"/>
+
+        <TextBlock HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,80,0,0" FontSize="14">Выберите дату:</TextBlock>
+        <DatePicker x:Name="DatePicker" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,110,0,0" Width="200"/>
+
+        <Button Content="Сохранить в CSV" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,160,0,0" Width="200" Height="40" Click="SaveScheduleToCsv"/>
+    </Grid>
+</Window>
+
+
+
+private List<FilmSchedule> GetFilmSchedule(string cinema, DateTime date)
+{
+    List<FilmSchedule> schedule = new List<FilmSchedule>();
+
+    string connectionString = "Server=YOUR_SERVER;Database=YOUR_DATABASE;Integrated Security=True;";
+
+    using (SqlConnection conn = new SqlConnection(connectionString))
+    {
+        string query = "SELECT MovieName, ShowTime, Hall, Price FROM FilmSchedule WHERE Cinema = @Cinema AND ShowDate = @Date ORDER BY MovieName, ShowTime";
+
+        using (SqlCommand cmd = new SqlCommand(query, conn))
+        {
+            cmd.Parameters.AddWithValue("@Cinema", cinema);
+            cmd.Parameters.AddWithValue("@Date", date);
+
+            conn.Open();
+            SqlDataReader reader = cmd.ExecuteReader();
+
+            while (reader.Read())
+            {
+                schedule.Add(new FilmSchedule
+                {
+                    MovieName = reader["MovieName"].ToString(),
+                    ShowTime = Convert.ToDateTime(reader["ShowTime"]),
+                    Hall = reader["Hall"].ToString(),
+                    Price = Convert.ToDecimal(reader["Price"])
+                });
+            }
+        }
+    }
+
+    return schedule;
+}
+
+
+private void SaveScheduleToCsv(object sender, RoutedEventArgs e)
+{
+    string cinema = CinemaComboBox.SelectedItem.ToString();
+    DateTime selectedDate = DatePicker.SelectedDate.Value;
+
+    // Получаем расписание фильмов
+    List<FilmSchedule> schedule = GetFilmSchedule(cinema, selectedDate);
+
+    if (schedule.Count > 0)
+    {
+        StringBuilder csvContent = new StringBuilder();
+
+        // Добавляем заголовок
+        csvContent.AppendLine("Название фильма,Время начала сеанса,Зал,Цена");
+
+        // Добавляем строки данных
+        foreach (var film in schedule)
+        {
+            csvContent.AppendLine($"{film.MovieName},{film.ShowTime:HH:mm},{film.Hall},{film.Price:C}");
+        }
+
+        // Сохраняем в файл
+        string filePath = $"{cinema}_{selectedDate:yyyy-MM-dd}_Schedule.csv";
+        File.WriteAllText(filePath, csvContent.ToString());
+
+        MessageBox.Show($"Расписание успешно сохранено в файл {filePath}", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
+    }
+    else
+    {
+        MessageBox.Show("Нет данных для выбранной даты и кинотеатра.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+    }
+}
+
+
+
+
+public class FilmSchedule
+{
+    public string MovieName { get; set; }
+    public DateTime ShowTime { get; set; }
+    public string Hall { get; set; }
+    public decimal Price { get; set; }
+}
+
